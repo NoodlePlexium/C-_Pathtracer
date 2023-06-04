@@ -3,15 +3,16 @@
 
 #include "Vector.h"
 #include "RayHit.h"
+#include "Material.h"
 
 class Plane : public Object {
     Vector normal;
-    Colour colour;
+    Material material;
     Vector vertices[4];
 
 public:
-    Plane(const Vector& position, const Vector& rotation, const Vector& scale)
-        : Object(position, rotation, scale), colour(0.8, 0.4, 0.2, 1) {
+    Plane(const Vector& position, const Vector& rotation, const Vector& scale, const Material& _material = Material(0.5, 0, 0, Colour(0.8, 0.8, 0.8, 1)))
+        : Object(position, rotation, scale), material(_material) {
         CalculateVertices();
         CalculateNormal();
     }
@@ -19,7 +20,7 @@ public:
     const Vector& Vertex(int index) const { return vertices[index]; }
     const Vector& Normal() const { return normal; }
 
-    RayHit CalculateRayHit(const Ray& ray) {
+    RayHit CalculateRayHit(const Ray& ray) const override {
         // Ray intersects with face 1 or 2
         RayHit hit1 = RayTriangleIntersect(ray, vertices[1], vertices[0], vertices[2]);
         RayHit hit2 = RayTriangleIntersect(ray, vertices[2], vertices[0], vertices[3]);
@@ -29,10 +30,6 @@ public:
         if (hit2.DidHit()) hit = hit2; // ray collided with face 2
 
         return hit;
-    }
-
-    void setColour(Colour _colour){
-        colour = _colour;
     }
 
 private:
@@ -75,7 +72,7 @@ private:
         normal = edge1.crossProduct(edge2).normalized();
     }
 
-    RayHit RayTriangleIntersect(const Ray& ray, const Vector& vertex1, const Vector& vertex2, const Vector& vertex3) {
+    RayHit RayTriangleIntersect(const Ray& ray, const Vector& vertex1, const Vector& vertex2, const Vector& vertex3) const {
         Vector edge1 = vertex2 - vertex1;
         Vector edge2 = vertex3 - vertex1;
 
@@ -107,7 +104,7 @@ private:
         Vector intersectionPos = ray.getRayOrigin() + ray.getRayDirection() * dist;
         Vector faceNormal = edge1.crossProduct(edge2).normalized();
 
-        return RayHit(ray, intersectionPos, dist, faceNormal, colour, true);
+        return RayHit(ray, intersectionPos, dist, faceNormal, material, true);
     }
 };
 
