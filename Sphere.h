@@ -2,20 +2,20 @@
 #define SPHERE_H
 
 #include "Vector.h"
+#include "Material.h"
 
-class Sphere {
-    Vector center;
+class Sphere : public Object {
     double radius;
-    Colour color;
+    Material material;
 
 public:
-    Sphere(const Vector& _center, double _radius, const Colour& _color)
-        : center(_center), radius(_radius), color(_color) {}
+    Sphere(const Vector& position, const Vector& rotation, const Vector& scale, double _radius, const Material& _material)
+        : Object(position, rotation, scale), radius(_radius), material(_material) {}
 
-    RayHit CalculateRayHit(const Ray& ray, Vector lightPos) {
+    RayHit CalculateRayHit(const Ray& ray) const override {
         RayHit hit;
 
-        Vector oc = ray.getRayOrigin() - center;
+        Vector oc = ray.getRayOrigin() - position;
         double a = ray.getRayDirection().dotProduct(ray.getRayDirection());
         double b = 2.0 * oc.dotProduct(ray.getRayDirection());
         double c = oc.dotProduct(oc) - radius * radius;
@@ -38,9 +38,8 @@ public:
 
             // Calculate the intersection position
             Vector hitPos = ray.getRayOrigin() + ray.getRayDirection() * t;
-            Vector normal = (center - hitPos).normalized();
-
-            return RayHit(ray, hitPos, t, normal, color, true);
+            Vector normal = (position - hitPos).normalized();
+            return RayHit(ray, hitPos, t, normal, material, true);
         }
         return hit;
     }
