@@ -1,12 +1,11 @@
 #ifndef COLOUR_H
 #define COLOUR_H
 
-
 class Colour {
     double red, green, blue, alpha;
 
 public:
-    Colour(double _red=0.0, double _green=0.0, double _blue=0.0, double _alpha=0.0)
+    Colour(double _red = 0, double _green = 0, double _blue = 0, double _alpha = 1)
         : red(_red), green(_green), blue(_blue), alpha(_alpha) {}
 
     double getRed() const { return red; }
@@ -14,19 +13,10 @@ public:
     double getBlue() const { return blue; }
     double getAlpha() const { return alpha; }
 
-    void setColourRed(double redValue) { red = redValue; }
-    void setColourGreen(double greenValue) { green = greenValue; }
-    void setColourBlue(double blueValue) { blue = blueValue; }
-    void setColourAlpha(double alphaValue) { alpha = alphaValue; }
-
-    // Add two colors
-    Colour add(const Colour other) const {
-        double newRed = red + other.red;
-        double newGreen = green + other.green;
-        double newBlue = blue + other.blue;
-        double newAlpha = alpha + other.alpha;
-        return Colour(newRed, newGreen, newBlue, newAlpha);
-    }
+    void setRed(double redValue) { red = redValue; }
+    void setGreen(double greenValue) { green = greenValue; }
+    void setBlue(double blueValue) { blue = blueValue; }
+    void setAlpha(double alphaValue) { alpha = alphaValue; }
 
     // Multiply the color by a scalar value
     Colour operator*(double scalar) const {
@@ -35,6 +25,81 @@ public:
         double newBlue = blue * scalar;
         double newAlpha = alpha * scalar;
         return Colour(newRed, newGreen, newBlue, newAlpha);
+    }
+
+    // Multiply two colors component-wise
+    Colour operator*(const Colour& other) const {
+        double newRed = red * other.red;
+        double newGreen = green * other.green;
+        double newBlue = blue * other.blue;
+        double newAlpha = alpha * other.alpha;
+        return Colour(newRed, newGreen, newBlue, newAlpha);
+    }
+
+    // Add two colors
+    Colour operator+(const Colour& other) const {
+        double newRed = red + other.red;
+        double newGreen = green + other.green;
+        double newBlue = blue + other.blue;
+        double newAlpha = alpha + other.alpha;
+        return Colour(newRed, newGreen, newBlue, newAlpha);
+    }
+
+    // Subtract two colors
+    Colour operator-(const Colour& other) const {
+        double newRed = red - other.red;
+        double newGreen = green - other.green;
+        double newBlue = blue - other.blue;
+        double newAlpha = alpha - other.alpha;
+        return Colour(newRed, newGreen, newBlue, newAlpha);
+    }
+
+    // Divide the color by a scalar value
+    Colour operator/(double scalar) const {
+        if (scalar != 0.0) {
+            double invScalar = 1.0 / scalar;
+            double newRed = red * invScalar;
+            double newGreen = green * invScalar;
+            double newBlue = blue * invScalar;
+            double newAlpha = alpha * invScalar;
+            return Colour(newRed, newGreen, newBlue, newAlpha);
+        }
+        // Division by zero, return a black color
+        return Colour();
+    }
+
+    // Add two colors and update the current color
+    Colour& operator+=(const Colour& other) {
+        red += other.red;
+        green += other.green;
+        blue += other.blue;
+        alpha += other.alpha;
+        return *this;
+    }
+
+    // Multiply the color by another colour and update the current color
+    Colour& operator*=(const Colour& other) {
+        red *= other.red;
+        green *= other.green;
+        blue *= other.blue;
+        alpha *= other.alpha;
+        return *this;
+    }
+
+    // Add two colors and update the current color
+    void blendAdd(const Colour& other) {
+        red = std::min(red + other.red, 1.0);
+        green = std::min(green + other.green, 1.0);
+        blue = std::min(blue + other.blue, 1.0);
+        alpha = std::min(alpha + other.getAlpha(), 1.0);
+    }
+
+    // Multiply the color by another colour and update the current color
+    void blendMultiply(const Colour& other) {
+        red *= other.red;
+        green *= other.green;
+        blue *= other.blue;
+        alpha *= other.alpha;
     }
 };
 
