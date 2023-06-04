@@ -1,20 +1,22 @@
 #ifndef LIGHT_H
 #define LIGHT_H
 
-#include "Object.h"
 #include "Colour.h"
 #include "Vector.h"
 
-class Light : public Object {
+class Light{
     Colour colour;
     Vector direction;
+    Vector position;
 
 public:
     Light(const Vector& _position, const Vector& _direction, const Colour& _colour)
-        : Object(_position), direction(_direction.normalized()), colour(_colour) {}
+        : position(_position), direction(_direction.normalized()), colour(_colour) {}
 
     Colour getColour() const { return colour; }
     Vector getDirection() const {return direction; }
+    const Vector& getPosition() const { return position; }
 };
 
 #endif
+
