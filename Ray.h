@@ -11,6 +11,9 @@ public:
 
     Vector getRayOrigin() const { return origin; }
     Vector getRayDirection() const { return direction; }
+
+    Vector setOrigin(Vector newOrigin) { origin = newOrigin;}
+    Vector setDirection(Vector newDirection) { direction = newDirection; }
 };
 
 #endif
