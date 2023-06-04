@@ -2,6 +2,7 @@
 #define OBJECT_H
 
 #include "Vector.h"
+#include "RayHit.h"
 
 class Object {
 protected:
@@ -21,6 +22,8 @@ public:
     void setPosition(const Vector& _position) { position = _position; }
     void setRotation(const Vector& _rotation) { rotation = _rotation; }
     void setScale(const Vector& _scale) { scale = _scale; }
+
+    virtual RayHit CalculateRayHit(const Ray& ray) const = 0;
 };
 
 #endif  
