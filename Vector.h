@@ -3,6 +3,8 @@
 
 #include <iostream>
 #include <cmath>
+#include <cstdlib>
+#include <ctime>
 
 class Vector {
     double x, y, z;
@@ -58,6 +60,11 @@ public:
         return Vector(x * scalar, y * scalar, z * scalar);
     }
 
+    Vector multiply(const Vector& v) const {
+        return Vector(x * v.getX(), y * v.getY(), z * v.getZ());
+    }
+
+
     Vector rotate(const Vector& angles) const {
 
         // PI constant
@@ -93,6 +100,25 @@ public:
         rotatedVector = Vector(rotatedX2, rotatedY2, rotatedVector.getZ());
 
         return rotatedVector;
+    }
+
+    static Vector RandomDirectionInHemisphere(const Vector& normal) {
+        static std::random_device rd;
+        static std::mt19937 gen(rd());
+        static std::uniform_real_distribution<float> distribution(0.0f, 1.0f);
+
+        float theta = 2.0f * 3.1415926f * distribution(gen);
+        float phi = std::acos(1 - 2 * distribution(gen));
+        float x = std::sin(phi) * std::cos(theta);
+        float y = std::sin(phi) * std::sin(theta);
+        float z = std::cos(phi);
+
+        Vector randomDirection(x, y, z);
+        if (randomDirection.dotProduct(normal) < 0.0f) {
+            randomDirection = randomDirection * -1.0f;
+        }
+
+        return randomDirection;
     }
 };
 
