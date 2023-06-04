@@ -48,87 +48,73 @@ public:
         }
         }
 
+        pixels = ACES(pixels, 1, BrightestPixel(pixels), 1);
 
         // Save Image
-        saveBMP("Render4.bmp");
+        saveBMP("Render17.bmp");
     }
 
     Colour PerPixel(int x, int y){
 
     	// Shading ///////////////////////////////////////////////////
         Colour skyColour(0.55, 0.69, 0.84);
-        Colour directIllumination; // Set to sky colour by default
-        Colour indirectIllumination; // Illumination from bounce light
+        Colour illumination; // Set to sky colour by default
 
-        int samples = 10;
+
+        int samples = 200;
 		for (int s = 0; s < samples; s++){
 
 			// Initialize sample colours /////////////////
-           	Colour sampleDirect = skyColour; 
-           	Colour sampleIndirect;
+           	Colour sampleColour(0,0,0,1); 
+           	Colour rayColour(1,1,1,0);
 
            	// First ray from camera ///////////////////////////
 	        Ray ray(camera.Position(), DirFromPixel(x, y));
 	        RayHit hit = CastRay(ray);
 
-	        // Ray hits scene object
-	        if (hit.DidHit()){
-	            double brightness = std::max(0.0, hit.getHitNormal().dotProduct(light.getDirection())); // Based on angle to light source
-	            sampleDirect = hit.getMeshColour() * light.getColour() * brightness;
-	            Ray shadowRay(hit.getHitPosition()-hit.getHitNormal()*0.00001, light.getDirection()*-1); // Check if point is in shadow
-	        	RayHit shadowHit = CastRay(shadowRay);
-	        	if (shadowHit.DidHit()){sampleDirect *= Colour(0,0,0,1);} 
-	        }
 
+			int bounces = 5;
+          	for (int i=0; i < bounces; i++){
 
-	        // Perform ray tracing for reflections
-	        if (hit.DidHit()){
+                // Cast a reflection ray
+                hit = CastRay(ray);
 
-	        	Vector reflectionVector = hit.getHitNormal() * 2 * ray.getRayDirection().dotProduct(hit.getHitNormal());
-    			Vector diffuseDir = Helper().RandomHemisphereDirection(hit.getHitNormal());
-    			Vector specularDir = ray.getRayDirection() - reflectionVector;
+                if (!hit.DidHit()){ // Break the loop nothing is hit (sky)
+                    // Blend the colour
+                	sampleColour += skyColour;
+                	rayColour = rayColour * hit.getMeshMaterial().getColour();
+                    break;  
+                } 
 
-    			ray.setOrigin(hit.getHitPosition() - hit.getHitNormal() * 0.00001);
-    			ray.setDirection(diffuseDir * hit.getMeshMaterial().getRoughness() +  specularDir * (1-hit.getMeshMaterial().getRoughness()));
+               	// Direct lighting
+                double angleIntensity = std::max(0.0, hit.getHitNormal().dotProduct(light.getDirection())); // Based on angle to light source
+                Colour directLight = hit.getMeshColour() * angleIntensity;
 
-				int bounces = 4;
-	          	for (int i=0; i < bounces; i++){
+                // Material emission
+                Colour emmittedLight =  hit.getMeshColour() * hit.getMeshMaterial().getEmissionStrength();
 
-	                // Cast a reflection ray
-	                hit = CastRay(ray);
+                // Shadow Check
+                Ray shadowRay(hit.getHitPosition() - hit.getHitNormal() * 0.00001, light.getDirection()*-1);
+        		RayHit shadowHit = CastRay(shadowRay);
+        		if (shadowHit.DidHit()){directLight = Colour(0,0,0,1);} 
 
-	                if (!hit.DidHit()){ // Break the loop nothing is hit (sky)
-	                    //sampleIndirect.blendAdd(skyColour / (bounces+1));
-	                    break;  
-	                } 
+                // Blend the colour
+                sampleColour += ((directLight + emmittedLight) * rayColour);
+                rayColour = rayColour * hit.getMeshMaterial().getColour();
 
-	               	// Calculate the indirect colour
-	                double angleIntensity = std::max(0.0, hit.getHitNormal().dotProduct(light.getDirection())); // Based on angle to light source
-	                Colour indirectColour = hit.getMeshColour() * angleIntensity;
+                // Set origin and direction for next bounce
+                Vector reflectionVector = hit.getHitNormal() * 2 * ray.getRayDirection().dotProduct(hit.getHitNormal());
+				Vector diffuseDir = Helper().RandomHemisphereDirection(hit.getHitNormal() * -1);
+				Vector specularDir = ray.getRayDirection() - reflectionVector;
 
-	                // Shadow Check
-	                Ray shadowRay(hit.getHitPosition()-hit.getHitNormal()*0.00001, light.getDirection()*-1);
-	        		RayHit shadowHit = CastRay(shadowRay);
-	        		if (shadowHit.DidHit()){indirectColour = Colour(0,0,0,1);} 
+				ray.setOrigin(hit.getHitPosition() - hit.getHitNormal() * 0.00001);
+				ray.setDirection(diffuseDir * hit.getMeshMaterial().getRoughness() + specularDir * (1-hit.getMeshMaterial().getRoughness()));
+            }
 
-	                // Blend the colour
-	                sampleIndirect.blendAdd(indirectColour / (bounces));
-
-	                // Set origin and direction for next bounce
-	                Vector reflectionVector = hit.getHitNormal() * 2 * ray.getRayDirection().dotProduct(hit.getHitNormal());
-    				Vector diffuseDir = Helper().RandomHemisphereDirection(hit.getHitNormal());
-    				Vector specularDir = ray.getRayDirection() - reflectionVector;
-
-    				ray.setOrigin(hit.getHitPosition() - hit.getHitNormal() * 0.00001);
-    				ray.setDirection(diffuseDir * hit.getMeshMaterial().getRoughness() +  specularDir * (1-hit.getMeshMaterial().getRoughness()));
-	            }
-	        }
-
-	        directIllumination.blendAdd(sampleDirect / samples);
-	        indirectIllumination.blendAdd(sampleIndirect / samples);
+	        illumination += (sampleColour / samples);
         }
 
-        return directIllumination + indirectIllumination;
+        return illumination;
     }
 
     Vector DirFromPixel(int x, int y){
@@ -166,6 +152,72 @@ public:
         for (int i = 0; i < camera.getHeight(); i++) {
             pixels[i] = new Colour[camera.getWidth()];
         }
+    }
+
+    // Define a helper function for tone mapping
+	float ToneMap(float value, float key, float whitePoint, float exposure) {
+	    value *= exposure;
+	    value /= key;
+	    value = (value * (1.0f + value / (whitePoint * whitePoint))) / (1.0f + value);
+	    return value;
+	}
+
+	Colour** ACES(Colour** pixels, float key, float whitePoint, float exposure) {
+		int width = camera.getWidth();
+		int height = camera.getHeight();
+
+	    Colour** tonedPixels = new Colour*[height];
+	    for (int y = 0; y < height; y++) {
+	        tonedPixels[y] = new Colour[width];
+	        for (int x = 0; x < width; x++) {
+	            Colour& pixel = pixels[y][x];
+	            // Apply tone mapping to each color channel
+	            pixel.setRed(ToneMap(pixel.getRed(), key, whitePoint, exposure));
+	            pixel.setGreen(ToneMap(pixel.getGreen(), key, whitePoint, exposure));
+	            pixel.setBlue(ToneMap(pixel.getBlue(), key, whitePoint, exposure));
+	            // Clamp the values to the range [0, 1]
+	            tonedPixels[y][x] = pixel;
+	        }
+	    }
+	    return tonedPixels;
+	}
+
+	double BrightestPixel(Colour** colours){
+    	int width = camera.getWidth();
+        int height = camera.getHeight();
+        double brightest = 0;
+    	for (int y=0; y<height; y++){
+    		for (int x=0; x<width; x++){
+    			brightest = std::max(brightest, colours[y][x].getRed());
+    			brightest = std::max(brightest, colours[y][x].getGreen());
+    			brightest = std::max(brightest, colours[y][x].getBlue());
+    		}
+    	}
+    	return brightest;
+    }
+
+    double Remap(double value, double min, double max, double newMin, double newMax){
+    	return newMin + (value - min) / (max - min);
+    }
+
+    Colour** RemapColours(Colour** colours){
+		int width = camera.getWidth();
+        int height = camera.getHeight();
+        double brightest = BrightestPixel(colours);
+        std::cout << brightest << std::endl;
+
+		for (int y=0; y<height; y++){
+    		for (int x=0; x<width; x++){
+    			double r = colours[y][x].getRed();
+    			double g = colours[y][x].getGreen();
+    			double b = colours[y][x].getBlue();
+    			colours[y][x].setRed(Remap(r, 0, brightest, 0, 1));
+    			colours[y][x].setGreen(Remap(g, 0, brightest, 0, 1));
+    			colours[y][x].setBlue(Remap(b, 0, brightest, 0, 1));
+    		}
+    	}
+
+    	return colours;
     }
 
     void saveBMP(const char* filename) {
@@ -253,9 +305,9 @@ int main() {
     dir = dir.rotate(angles);
     right = right.rotate(angles);
 
-    int width = 500;
-    int height = 500;
-    double fov = 70;
+    int width = 1000;
+    int height = 1000;
+    double fov = 60;
 
     // Create a camera
     Camera cam(pos, dir, right, down, width, height, fov);
@@ -264,35 +316,40 @@ int main() {
     // Create Scene objects /////////////////////////////////////////////////////////////
     std::vector<Object*> objects;
 
-    Material mat1 = Material(0.1, 0, 0, Colour(0.8, 0.8, 0.8, 1));
+    Material mat1 = Material(1, 0, 0, Colour(0.8, 0.8, 0.8, 1));
+    Material mat2 = Material(1, 0, 0, Colour(0.1, 0.1, 0.9, 1));
+    Material mat3 = Material(1, 0, 0, Colour(0.1, 0.9, 0.1, 1));
 
-    Material groundMat = Material(0, 0, 0, Colour(0.9, 0.9, 0.9, 1));
-    Material BWMat = Material(0.5, 0, 0, Colour(0.2, 0.8, 0.2, 1));
-    Material LWMat = Material(0.1, 0, 0, Colour(0.8, 0.2, 0.2, 1));
-    Material RWMat = Material(0.1, 0, 0, Colour(0.2, 0.2, 0.8, 1));
+    Material groundMat = Material(0, 0, 0, Colour(0.8, 0.8, 0.8, 1));
+    Material roofMat = Material(0.1, 0, 0, Colour(0.8, 0.8, 0.8, 1));
+    Material BWMat = Material(1, 0, 0, Colour(0.1, 0.8, 0.1, 1));
+    Material LWMat = Material(1, 0, 0, Colour(1, 0, 0, 1));
+    Material RWMat = Material(0, 0, 0, Colour(0.8, 0.8, 0.8, 1));
 
 
 
-    Sphere* sphere = new Sphere(Vector(0, -1.5, 5), Vector(0, 0, 0), Vector(1, 1, 1), 0.5, mat1); // Create a sphere
-    Sphere* sphere2 = new Sphere(Vector(-1.1, -1.5, 6), Vector(0, 0, 0), Vector(0.5, 0.5, 0.5), 0.5, mat1); // Create a sphere
-    Sphere* sphere3 = new Sphere(Vector(1.2, -1.5, 5), Vector(0, 0, 0), Vector(0.5, 0.5, 0.5), 0.5, mat1); // Create a sphere
+    Sphere* sphere = new Sphere(Vector(0, -1, 5), Vector(0, 0, 0), Vector(1, 1, 1), 01, mat1); // Create a sphere
+    Sphere* sphere2 = new Sphere(Vector(-1.1, -1.5, 6), Vector(0, 0, 0), Vector(0.5, 0.5, 0.5), 0.5, mat3); // Create a sphere
+    Sphere* sphere3 = new Sphere(Vector(1.5, -1.5, 4.5), Vector(0, 0, 0), Vector(0.5, 0.5, 0.5), 0.5, mat2); // Create a sphere
 
     Plane* ground =  new Plane(Vector(0, -2, 5), Vector(0, 0, 0), Vector(5, 5, 5), groundMat); // Create a plane
-    Plane* Right_Wall =  new Plane(Vector(2.5, -2, 5), Vector(0, 0, 90), Vector(5, 5, 5), RWMat); // Create a plane
-    Plane* Left_Wall =  new Plane(Vector(-2.5, -2, 5), Vector(0, 0, -90), Vector(5, 5, 5), LWMat); // Create a plane
-    Plane* Back_Wall =  new Plane(Vector(0, -2, 7.5), Vector(90, 180, 0), Vector(5, 5, 5), BWMat); // Create a plane
+    Plane* roof =  new Plane(Vector(0, 2, 5), Vector(180, 0, 0), Vector(5, 5, 5), roofMat); // Create a plane
+    Plane* Right_Wall =  new Plane(Vector(2.5, -0.5, 5), Vector(0, 0, 90), Vector(5, 5, 5), RWMat); // Create a plane
+    Plane* Left_Wall =  new Plane(Vector(-2.5, -0.5, 5), Vector(0, 0, -90), Vector(5, 5, 5), LWMat); // Create a plane
+    Plane* Back_Wall =  new Plane(Vector(0, -0.5, 7.5), Vector(90, 180, 0), Vector(5, 5, 5), BWMat); // Create a plane
 
     objects.push_back(sphere);
     objects.push_back(sphere2);
     objects.push_back(sphere3);
-    objects.push_back(ground);
+    objects.push_back(ground); 
+    objects.push_back(roof); 
     objects.push_back(Right_Wall);
     objects.push_back(Left_Wall);
     objects.push_back(Back_Wall);
 
 
     // Create a light
-    Light light(Vector(2, 10, -5), Vector(0.5, -1, 1), Colour(1,1,1,1));
+    Light light(Vector(2, 10, -5), Vector(1, -1, 2), Colour(1,1,1,1));
 
 
     Renderer renderer(cam, objects, light);
@@ -300,4 +357,5 @@ int main() {
 
     return 0;
 }
+
 
