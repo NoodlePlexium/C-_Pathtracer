@@ -35,7 +35,7 @@ public:
         InitializePixels();
     }
 
-    void Render(){
+    void Render(int samples){
 
 
 
@@ -44,24 +44,23 @@ public:
         for (int x = 0; x < camera.getWidth(); x++) {
 
         // Code runs per Pixel ///////
-        pixels[y][x] = PerPixel(x,y);
+        pixels[y][x] = PerPixel(x,y,samples);
         }
         }
 
         pixels = ACES(pixels, 1, BrightestPixel(pixels), 1);
 
         // Save Image
-        saveBMP("Render17.bmp");
+        saveBMP("Render18.bmp");
     }
 
-    Colour PerPixel(int x, int y){
+    Colour PerPixel(int x, int y, int samples){
 
     	// Shading ///////////////////////////////////////////////////
         Colour skyColour(0.55, 0.69, 0.84);
         Colour illumination; // Set to sky colour by default
 
 
-        int samples = 200;
 		for (int s = 0; s < samples; s++){
 
 			// Initialize sample colours /////////////////
@@ -100,6 +99,7 @@ public:
 
                 // Blend the colour
                 sampleColour += ((directLight + emmittedLight) * rayColour);
+                //sampleColour += emmittedLight * rayColour;
                 rayColour = rayColour * hit.getMeshMaterial().getColour();
 
                 // Set origin and direction for next bounce
@@ -291,7 +291,7 @@ public:
 
 
 int main() {
-    Vector pos(0, 0, 0);
+    Vector pos(0, 2.5, -8.86258);
     Vector dir(0, 0, 1);
     Vector right(1, 0, 0);
     Vector down(0, -1, 0);
@@ -305,9 +305,9 @@ int main() {
     dir = dir.rotate(angles);
     right = right.rotate(angles);
 
-    int width = 1000;
-    int height = 1000;
-    double fov = 60;
+    int width = 500;
+    int height = 500;
+    double fov = 40;
 
     // Create a camera
     Camera cam(pos, dir, right, down, width, height, fov);
@@ -316,36 +316,35 @@ int main() {
     // Create Scene objects /////////////////////////////////////////////////////////////
     std::vector<Object*> objects;
 
-    Material mat1 = Material(1, 0, 0, Colour(0.8, 0.8, 0.8, 1));
-    Material mat2 = Material(1, 0, 0, Colour(0.1, 0.1, 0.9, 1));
-    Material mat3 = Material(1, 0, 0, Colour(0.1, 0.9, 0.1, 1));
+    Material mat1 = Material(0.5, 0, 0, Colour(1, 1, 1, 1));
 
-    Material groundMat = Material(0, 0, 0, Colour(0.8, 0.8, 0.8, 1));
-    Material roofMat = Material(0.1, 0, 0, Colour(0.8, 0.8, 0.8, 1));
-    Material BWMat = Material(1, 0, 0, Colour(0.1, 0.8, 0.1, 1));
-    Material LWMat = Material(1, 0, 0, Colour(1, 0, 0, 1));
-    Material RWMat = Material(0, 0, 0, Colour(0.8, 0.8, 0.8, 1));
+    Material groundMat = Material(0.5, 0, 0, Colour(1, 1, 1, 1));
+    Material roofMat = Material(0.5, 0, 0, Colour(1, 1, 1, 1));
+    Material BWMat = Material(0.5, 0, 0, Colour(0, 1, 0, 1));
+    Material LWMat = Material(0.5, 0, 0, Colour(0, 0, 1, 1));
+    Material RWMat = Material(0.5, 0, 0, Colour(1, 1, 1, 1));
+
+    Material lightMat = Material(1, 0, 70, Colour(1, 1, 1, 1));
 
 
 
-    Sphere* sphere = new Sphere(Vector(0, -1, 5), Vector(0, 0, 0), Vector(1, 1, 1), 01, mat1); // Create a sphere
-    Sphere* sphere2 = new Sphere(Vector(-1.1, -1.5, 6), Vector(0, 0, 0), Vector(0.5, 0.5, 0.5), 0.5, mat3); // Create a sphere
-    Sphere* sphere3 = new Sphere(Vector(1.5, -1.5, 4.5), Vector(0, 0, 0), Vector(0.5, 0.5, 0.5), 0.5, mat2); // Create a sphere
+    Sphere* sphere = new Sphere(Vector(0, 1, 0), Vector(0, 0, 0), Vector(1, 1, 1), 1, mat1); // Create a sphere
 
-    Plane* ground =  new Plane(Vector(0, -2, 5), Vector(0, 0, 0), Vector(5, 5, 5), groundMat); // Create a plane
-    Plane* roof =  new Plane(Vector(0, 2, 5), Vector(180, 0, 0), Vector(5, 5, 5), roofMat); // Create a plane
-    Plane* Right_Wall =  new Plane(Vector(2.5, -0.5, 5), Vector(0, 0, 90), Vector(5, 5, 5), RWMat); // Create a plane
-    Plane* Left_Wall =  new Plane(Vector(-2.5, -0.5, 5), Vector(0, 0, -90), Vector(5, 5, 5), LWMat); // Create a plane
-    Plane* Back_Wall =  new Plane(Vector(0, -0.5, 7.5), Vector(90, 180, 0), Vector(5, 5, 5), BWMat); // Create a plane
+    Plane* ground =  new Plane(Vector(0, 0, 0), Vector(0, 0, 0), Vector(5, 5, 5), groundMat); // Create a plane
+    Plane* roof =  new Plane(Vector(0, 5, 0), Vector(180, 0, 0), Vector(5, 5, 5), roofMat); // Create a plane
+    Plane* Right_Wall =  new Plane(Vector(2.5, 2.5, 0), Vector(0, 0, 90), Vector(5, 5, 5), RWMat); // Create a plane
+    Plane* Left_Wall =  new Plane(Vector(-2.5, 2.5, 0), Vector(0, 0, -90), Vector(5, 5, 5), LWMat); // Create a plane
+    Plane* Back_Wall =  new Plane(Vector(0, 2.5, 2.5), Vector(90, 180, 0), Vector(5, 5, 5), BWMat); // Create a plane
+
+    Plane* Light_ =  new Plane(Vector(0, 5, 0), Vector(180, 0, 0), Vector(2, 2, 2), lightMat); 
 
     objects.push_back(sphere);
-    objects.push_back(sphere2);
-    objects.push_back(sphere3);
     objects.push_back(ground); 
     objects.push_back(roof); 
     objects.push_back(Right_Wall);
     objects.push_back(Left_Wall);
     objects.push_back(Back_Wall);
+    objects.push_back(Light_);
 
 
     // Create a light
@@ -353,9 +352,10 @@ int main() {
 
 
     Renderer renderer(cam, objects, light);
-    renderer.Render();
+    renderer.Render(1000);
 
     return 0;
 }
+
 
 
