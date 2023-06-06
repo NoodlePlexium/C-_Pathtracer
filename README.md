@@ -6,7 +6,7 @@ A ray tracer written from scratch in c++
 - Uses utilizes multiple CPU cores to improve performance
 
 To Compile and run:
-g++ RenderEngine.cpp -o RenderEngine -fopenmp
-RenderEngine.exe
+# g++ RenderEngine.cpp -o RenderEngine -fopenmp
+# RenderEngine.exe
 
 
