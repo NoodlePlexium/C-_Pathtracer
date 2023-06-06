@@ -6,6 +6,8 @@
 #include <limits>
 #include <vector>
 #include <random>
+#include <omp.h>  // Include the OpenMP header
+#include <chrono>
 
 #include "Colour.h"
 #include "Vector.h"
@@ -16,7 +18,6 @@
 #include "Sphere.h"
 #include "Ray.h"
 #include "Helper.h"
-
 
 
 class Renderer {
@@ -37,9 +38,11 @@ public:
 
     void Render(int samples){
 
+    	// Get the number of available threads
+        int numThreads = omp_get_num_procs();
 
-
-        // Iterate over each pixel /////////////////////////////////
+        // Enable parallel execution of the loop
+        #pragma omp parallel for num_threads(numThreads)
         for (int y = 0; y < camera.getHeight(); y++) {
         for (int x = 0; x < camera.getWidth(); x++) {
 
@@ -51,8 +54,9 @@ public:
         pixels = ACES(pixels, 1, BrightestPixel(pixels), 1);
 
         // Save Image
-        saveBMP("Render18.bmp");
+        saveBMP("Render20.bmp");
     }
+
 
     Colour PerPixel(int x, int y, int samples){
 
@@ -87,7 +91,7 @@ public:
 
                	// Direct lighting
                 double angleIntensity = std::max(0.0, hit.getHitNormal().dotProduct(light.getDirection())); // Based on angle to light source
-                Colour directLight = hit.getMeshColour() * angleIntensity;
+                Colour directLight = hit.getMeshColour() * angleIntensity * light.getIntensity();
 
                 // Material emission
                 Colour emmittedLight =  hit.getMeshColour() * hit.getMeshMaterial().getEmissionStrength();
@@ -317,26 +321,20 @@ int main() {
     std::vector<Object*> objects;
 
     Material mat1 = Material(0.5, 0, 0, Colour(1, 1, 1, 1));
-
     Material groundMat = Material(0.5, 0, 0, Colour(1, 1, 1, 1));
     Material roofMat = Material(0.5, 0, 0, Colour(1, 1, 1, 1));
     Material BWMat = Material(0.5, 0, 0, Colour(0, 1, 0, 1));
     Material LWMat = Material(0.5, 0, 0, Colour(0, 0, 1, 1));
     Material RWMat = Material(0.5, 0, 0, Colour(1, 1, 1, 1));
-
-    Material lightMat = Material(1, 0, 70, Colour(1, 1, 1, 1));
-
-
+    Material lightMat = Material(1, 0, 20, Colour(1, 1, 1, 1));
 
     Sphere* sphere = new Sphere(Vector(0, 1, 0), Vector(0, 0, 0), Vector(1, 1, 1), 1, mat1); // Create a sphere
-
     Plane* ground =  new Plane(Vector(0, 0, 0), Vector(0, 0, 0), Vector(5, 5, 5), groundMat); // Create a plane
     Plane* roof =  new Plane(Vector(0, 5, 0), Vector(180, 0, 0), Vector(5, 5, 5), roofMat); // Create a plane
     Plane* Right_Wall =  new Plane(Vector(2.5, 2.5, 0), Vector(0, 0, 90), Vector(5, 5, 5), RWMat); // Create a plane
     Plane* Left_Wall =  new Plane(Vector(-2.5, 2.5, 0), Vector(0, 0, -90), Vector(5, 5, 5), LWMat); // Create a plane
     Plane* Back_Wall =  new Plane(Vector(0, 2.5, 2.5), Vector(90, 180, 0), Vector(5, 5, 5), BWMat); // Create a plane
-
-    Plane* Light_ =  new Plane(Vector(0, 5, 0), Vector(180, 0, 0), Vector(2, 2, 2), lightMat); 
+    Plane* Light_ =  new Plane(Vector(0, 4.99, 0), Vector(180, 0, 0), Vector(2, 2, 2), lightMat); 
 
     objects.push_back(sphere);
     objects.push_back(ground); 
@@ -350,12 +348,20 @@ int main() {
     // Create a light
     Light light(Vector(2, 10, -5), Vector(1, -1, 2), Colour(1,1,1,1));
 
+    // Render Scene /////////////////////////////////////////////////////////////
+    auto start = std::chrono::system_clock::now();
 
     Renderer renderer(cam, objects, light);
-    renderer.Render(1000);
+    renderer.Render(10000);
+
+    auto end = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end-start;
+    std::cout << "elapsed time: " << elapsed_seconds.count() << "s"<< std::endl;
 
     return 0;
 }
 
+// g++ RenderEngine.cpp -o app -fopenmp
+// app.exe
 
 
