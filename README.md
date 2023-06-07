@@ -9,4 +9,6 @@ A ray tracer written from scratch in c++
 - g++ RenderEngine.cpp -o RenderEngine -fopenmp
 - RenderEngine.exe
 
+![alt text](http://url/to/img.png)
+
 
