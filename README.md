@@ -9,6 +9,7 @@ A ray tracer written from scratch in c++
 - g++ RenderEngine.cpp -o RenderEngine -fopenmp
 - RenderEngine.exe
 
+# Example Render (10,000 samples)
 ![alt text](https://github.com/NoodlePlexium/Raytracer/blob/main/Render.bmp)
 
 
