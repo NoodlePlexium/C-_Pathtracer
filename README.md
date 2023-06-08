@@ -13,4 +13,8 @@ A ray tracer written from scratch in c++
 ![alt text](https://github.com/NoodlePlexium/Raytracer/blob/main/Render.bmp)
 ![alt text](https://github.com/NoodlePlexium/Raytracer/blob/main/Render1.bmp)
 
+# Further additions to be made
+- Add anti-aliasing
+- glass materials / refraction
+- support for .fbx meshes
 
