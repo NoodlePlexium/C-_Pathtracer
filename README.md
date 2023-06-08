@@ -11,5 +11,6 @@ A ray tracer written from scratch in c++
 
 # Example Render (10,000 samples)
 ![alt text](https://github.com/NoodlePlexium/Raytracer/blob/main/Render.bmp)
+![alt text](https://github.com/NoodlePlexium/Raytracer/blob/main/Render1.bmp)
 
 
