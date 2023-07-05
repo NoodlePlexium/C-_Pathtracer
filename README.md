@@ -16,5 +16,4 @@ A ray tracer written from scratch in c++
 # Further additions to be made
 - anti-aliasing
 - glass materials / refraction
-- support for .fbx meshes
 
