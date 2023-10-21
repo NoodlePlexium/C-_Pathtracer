@@ -1,5 +1,5 @@
-# Raytracer_CPP
-A ray tracer written from scratch in c++
+# PathTracer_CPP
+A path tracer written from scratch in c++
 
 - Supprted meshes are spheres and planes.
 - Supported Light sources are material emission and a direct light
